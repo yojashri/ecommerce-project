@@ -1,65 +1,200 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+
+interface Product {
+  id: number
+  title: string
+  price: number
+  description: string
+  category: string
+  image: string
+}
 
 export default function Home() {
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [filtered, setFiltered] = useState<Product[]>([])
+  const [search, setSearch] = useState("")
+  const [category, setCategory] = useState("all")
+  const [sort, setSort] = useState("")
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [productsPerPage, setProductsPerPage] = useState(9)
+
+  // Fetch Products
+  useEffect(() => {
+    setLoading(true)
+
+    fetch("https://fakestoreapi.com/products")
+      .then(res => res.json())
+      .then(data => {
+        setProducts(data)
+        setFiltered(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+
+  }, [])
+
+  // Responsive count
+  useEffect(() => {
+    const updateCount = () => {
+      if (window.innerWidth < 768) {
+        setProductsPerPage(8)
+      } else {
+        setProductsPerPage(9)
+      }
+    }
+
+    updateCount()
+    window.addEventListener("resize", updateCount)
+    return () => window.removeEventListener("resize", updateCount)
+  }, [])
+
+  // Filter + Sort
+  useEffect(() => {
+
+    let updated = [...products]
+
+    if (search) {
+      updated = updated.filter(p =>
+        p.title.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+
+    if (category !== "all") {
+      updated = updated.filter(p => p.category === category)
+    }
+
+    if (sort === "low") {
+      updated.sort((a, b) => a.price - b.price)
+    }
+
+    if (sort === "high") {
+      updated.sort((a, b) => b.price - a.price)
+    }
+
+    setFiltered(updated)
+    setPage(1)
+
+  }, [search, category, sort, products])
+
+  const start = (page - 1) * productsPerPage
+  const end = start + productsPerPage
+  const paginated = filtered.slice(start, end)
+  const totalPages = Math.ceil(filtered.length / productsPerPage)
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="max-w-6xl mx-auto px-4 py-10">
+
+      {/* Search + Category + Sort */}
+      <div className="flex flex-wrap gap-4 justify-between items-center mb-8">
+
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-4 py-2 border rounded w-full sm:w-64 dark:bg-gray-800 dark:text-white"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="flex gap-4">
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <option value="all">All Categories</option>
+            <option value="electronics">Electronics</option>
+            <option value="men's clothing">Men's</option>
+            <option value="women's clothing">Women's</option>
+            <option value="jewelery">Jewelery</option>
+          </select>
+
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
           >
-            Documentation
-          </a>
+            <option value="">Sort By Price</option>
+            <option value="low">Low to High</option>
+            <option value="high">High to Low</option>
+          </select>
+
         </div>
-      </main>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-20 text-xl dark:text-white">
+          Loading products...
+        </div>
+      )}
+
+      {/* No Products Found */}
+      {!loading && filtered.length === 0 && (
+        <div className="text-center py-20 text-xl text-red-500">
+          No Products Found
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {!loading && filtered.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            {paginated.map(product => (
+              <div
+                key={product.id}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col transition hover:shadow-xl"
+              >
+                <img
+                  src={product.image}
+                  alt={product.title}
+                  className="h-48 object-contain mb-4"
+                />
+
+                <h3 className="font-semibold mb-2 dark:text-white">
+                  {product.title}
+                </h3>
+
+                <p className="font-bold mb-2 dark:text-white">
+                  ${product.price}
+                </p>
+
+                <Link
+                  href={`/products/${product.id}`}
+                  className="text-blue-600 dark:text-blue-400 mt-auto"
+                >
+                  View Details
+                </Link>
+              </div>
+            ))}
+
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center mt-10 gap-3">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`px-4 py-2 border rounded dark:border-white ${
+                  page === i + 1
+                    ? "bg-black text-white"
+                    : "bg-white dark:bg-gray-800 dark:text-white"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
     </div>
-  );
+  )
 }
