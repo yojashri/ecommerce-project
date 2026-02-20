@@ -4,197 +4,150 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 
 interface Product {
-  id: number
-  title: string
-  price: number
-  description: string
-  category: string
-  image: string
+id: number
+title: string
+price: number
+description: string
+category: string
+image: string
 }
 
 export default function Home() {
+const [products, setProducts] = useState<Product[]>([])
+const [filtered, setFiltered] = useState<Product[]>([])
+const [search, setSearch] = useState("")
+const [category, setCategory] = useState("all")
+const [sort, setSort] = useState("")
+const [page, setPage] = useState(1)
+const [loading, setLoading] = useState(true)
 
-  const [products, setProducts] = useState<Product[]>([])
-  const [filtered, setFiltered] = useState<Product[]>([])
-  const [search, setSearch] = useState("")
-  const [category, setCategory] = useState("all")
-  const [sort, setSort] = useState("")
-  const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [productsPerPage, setProductsPerPage] = useState(9)
+const productsPerPage = 9
 
-  // Fetch Products
-  useEffect(() => {
-    setLoading(true)
+// Fetch products
+useEffect(() => {
+setLoading(true)
 
-    fetch("https://fakestoreapi.com/products")
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data)
-        setFiltered(data)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+fetch("https://fakestoreapi.com/products")
+  .then(res => res.json())
+  .then(data => {
+    setProducts(data)
+    setFiltered(data)
+    setLoading(false)
+  })
+  .catch(() => setLoading(false))
 
-  }, [])
+}, [])
 
-  // Responsive count
-  useEffect(() => {
-    const updateCount = () => {
-      if (window.innerWidth < 768) {
-        setProductsPerPage(8)
-      } else {
-        setProductsPerPage(9)
-      }
-    }
+// Filter + Sort logic
+useEffect(() => {
+let updated = [...products]
 
-    updateCount()
-    window.addEventListener("resize", updateCount)
-    return () => window.removeEventListener("resize", updateCount)
-  }, [])
+if (search) {
+  updated = updated.filter(p =>
+    p.title.toLowerCase().includes(search.toLowerCase())
+  )
+}
 
-  // Filter + Sort
-  useEffect(() => {
+if (category !== "all") {
+  updated = updated.filter(p => p.category === category)
+}
 
-    let updated = [...products]
+if (sort === "low") updated.sort((a, b) => a.price - b.price)
+if (sort === "high") updated.sort((a, b) => b.price - a.price)
 
-    if (search) {
-      updated = updated.filter(p =>
-        p.title.toLowerCase().includes(search.toLowerCase())
-      )
-    }
+setFiltered(updated)
+setPage(1)
 
-    if (category !== "all") {
-      updated = updated.filter(p => p.category === category)
-    }
+}, [search, category, sort, products])
 
-    if (sort === "low") {
-      updated.sort((a, b) => a.price - b.price)
-    }
+// Pagination logic
+const start = (page - 1) * productsPerPage
+const paginated = filtered.slice(start, start + productsPerPage)
+const totalPages = Math.ceil(filtered.length / productsPerPage)
 
-    if (sort === "high") {
-      updated.sort((a, b) => b.price - a.price)
-    }
+return (
+<div className="max-w-6xl mx-auto px-4 py-10">
 
-    setFiltered(updated)
-    setPage(1)
+  {/* Controls */}
+  <div className="flex flex-wrap gap-4 justify-between mb-8">
+    <input
+      type="text"
+      placeholder="Search..."
+      value={search}
+      onChange={e => setSearch(e.target.value)}
+      className="border p-2 rounded"
+    />
 
-  }, [search, category, sort, products])
+    <div className="flex gap-3">
+      <select
+        value={category}
+        onChange={e => setCategory(e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="all">All</option>
+        <option value="electronics">Electronics</option>
+        <option value="jewelery">Jewelery</option>
+        <option value="men's clothing">Men</option>
+        <option value="women's clothing">Women</option>
+      </select>
 
-  const start = (page - 1) * productsPerPage
-  const end = start + productsPerPage
-  const paginated = filtered.slice(start, end)
-  const totalPages = Math.ceil(filtered.length / productsPerPage)
+      <select
+        value={sort}
+        onChange={e => setSort(e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="">Sort</option>
+        <option value="low">Low → High</option>
+        <option value="high">High → Low</option>
+      </select>
+    </div>
+  </div>
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
+  {/* Loading */}
+  {loading && <p className="text-center">Loading...</p>}
 
-      {/* Search + Category + Sort */}
-      <div className="flex flex-wrap gap-4 justify-between items-center mb-8">
+  {/* No Results */}
+  {!loading && filtered.length === 0 && (
+    <p className="text-center text-red-500">No products found</p>
+  )}
 
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 border rounded w-full sm:w-64 dark:bg-gray-800 dark:text-white"
-        />
+  {/* Grid */}
+  {!loading && filtered.length > 0 && (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {paginated.map(p => (
+          <div key={p.id} className="border p-4 rounded">
+            <img src={p.image} className="h-40 mx-auto object-contain" />
+            <h3 className="font-semibold mt-2">{p.title}</h3>
+            <p className="font-bold">${p.price}</p>
 
-        <div className="flex gap-4">
-
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
-          >
-            <option value="all">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="men's clothing">Men's</option>
-            <option value="women's clothing">Women's</option>
-            <option value="jewelery">Jewelery</option>
-          </select>
-
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">Sort By Price</option>
-            <option value="low">Low to High</option>
-            <option value="high">High to Low</option>
-          </select>
-
-        </div>
+            <Link
+              href={`/products/${p.id}`}
+              className="text-blue-600"
+            >
+              View Details
+            </Link>
+          </div>
+        ))}
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-20 text-xl dark:text-white">
-          Loading products...
-        </div>
-      )}
+      {/* Pagination */}
+      <div className="flex justify-center mt-8 gap-2">
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => setPage(i + 1)}
+            className={`px-3 py-1 border ${
+              page === i + 1 ? "bg-black text-white" : ""
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    </>
+  )}
+</div>
 
-      {/* No Products Found */}
-      {!loading && filtered.length === 0 && (
-        <div className="text-center py-20 text-xl text-red-500">
-          No Products Found
-        </div>
-      )}
-
-      {/* Products Grid */}
-      {!loading && filtered.length > 0 && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-
-            {paginated.map(product => (
-              <div
-                key={product.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col transition hover:shadow-xl"
-              >
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="h-48 object-contain mb-4"
-                />
-
-                <h3 className="font-semibold mb-2 dark:text-white">
-                  {product.title}
-                </h3>
-
-                <p className="font-bold mb-2 dark:text-white">
-                  ${product.price}
-                </p>
-
-                <Link
-                  href={`/products/${product.id}`}
-                  className="text-blue-600 dark:text-blue-400 mt-auto"
-                >
-                  View Details
-                </Link>
-              </div>
-            ))}
-
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-center mt-10 gap-3">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`px-4 py-2 border rounded dark:border-white ${
-                  page === i + 1
-                    ? "bg-black text-white"
-                    : "bg-white dark:bg-gray-800 dark:text-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-    </div>
-  )
+)
 }

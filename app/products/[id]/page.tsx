@@ -41,7 +41,7 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="relative bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg max-w-3xl w-full text-center">
 
-        {/* ❌ Close Button */}
+        {/* Close Button */}
         <Link
           href="/"
           className="absolute top-4 right-4 text-xl font-bold text-gray-500 hover:text-red-500"
