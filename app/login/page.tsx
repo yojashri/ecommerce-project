@@ -22,8 +22,8 @@ export default function LoginPage() {
 
     if (res.ok) {
       //  STORE TOKEN IN COOKIE 
-      document.cookie = `token=${data.token}; path=/`
-
+      // document.cookie = `token=${data.token}; path=/`
+document.cookie = `token=${data.token}; path=/; SameSite=Lax`
       console.log("Token stored in cookie:", data.token)
 
      
